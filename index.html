@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fanouškovský web – interaktivní rozbor</title>
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --ink: #1f1f1f;
+    --ink-soft: #5f5f5f;
+    --hl: #ffb900;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: #ffffff; font-family: Calibri, "Segoe UI", system-ui, -apple-system, Arial, sans-serif; color: var(--ink); }
+
+  /* ---------- Ukázková stránka ---------- */
+  .site {
+    width: 100%;
+    max-width: 760px;
+    min-height: 100vh;
+    background-color: #0f0e17;
+    color: #f2f2f5;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    min-width: 0;
+    margin: 0 auto;
+    padding-bottom: 44px;
+    cursor: help;
+    overflow: hidden;
+  }
+  .menu { display: flex; justify-content: space-between; align-items: center; padding: 14px 40px; border-bottom: 1px solid #2a2938; }
+  .logo { font-weight: 800; letter-spacing: .06em; font-size: 14px; }
+  .logo b { color: #8b5cf6; }
+  .menu ul { list-style: none; display: flex; gap: 18px; margin: 0; padding: 0; font-size: 12px; color: #d8d8e0; }
+
+  .hero { position: relative; padding: 52px 40px 46px; background: radial-gradient(closest-side at 80% 40%, rgba(110,70,230,.5), rgba(110,70,230,0)); }
+  .eyebrow { font-size: 11px; letter-spacing: .15em; font-weight: 700; color: #8b5cf6; margin: 0 0 10px; }
+  .hero h1 { font-size: 42px; line-height: 1; margin: 0 0 16px; font-weight: 800; letter-spacing: -.02em; color: #fff; }
+  .lead { font-size: 15px; color: #9b9aa8; max-width: 360px; line-height: 1.6; margin: 0 0 20px; }
+  .tlacitko { display: inline-block; background-color: #8b5cf6; color: #fff; font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 5px; text-decoration: none; }
+
+  .games { padding: 8px 40px 0; }
+  .games-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+  .games h2 { font-size: 21px; margin: 0; font-weight: 800; color: #fff; }
+  .sub { font-size: 12px; color: #9b9aa8; margin: 0; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .card { background-color: #17161f; border: 1px solid #2a2938; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  .card img { display: block; width: 100%; height: 86px; object-fit: cover; }
+  .card .body { padding: 10px 11px 9px; }
+  .kategorie { font-size: 10px; letter-spacing: .12em; color: #8b5cf6; font-weight: 700; margin: 0 0 4px; }
+  .nazev { font-size: 21px; font-weight: 700; margin: 0 0 8px; color: #fff; }
+  .popis { font-size: 14px; line-height: 1.6; color: #9b9aa8; margin: 0 0 14px; min-height: 0; }
+  .hodnoceni { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2a2938; padding-top: 7px; }
+  .hodnoceni p { margin: 0; font-size: 12px; }
+  .skore { font-weight: 700; }
+  .hvezdy { color: #8b5cf6; letter-spacing: 1px; }
+
+  /* ---------- Zvýraznění a bublina ---------- */
+  [data-tip] { outline: 2px solid transparent; outline-offset: 2px; transition: outline-color .1s; }
+  [data-tip].hot { outline-color: var(--hl); }
+  .tip { position: fixed; z-index: 50; left: 0; top: 0; max-width: 300px; padding: 12px 16px; border-radius: 14px; background: linear-gradient(180deg, #86c157, #3f6b22); color: #fff; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.35); pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s; }
+  .tip.on { opacity: 1; transform: none; }
+  .tip code { display: block; font-family: Consolas, "Courier New", monospace; font-size: 17px; margin-bottom: 4px; font-weight: 600; word-break: break-word; }
+  .tip span { display: block; font-size: 15px; line-height: 1.35; }
+  .tip .css { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.4); font-family: Consolas, "Courier New", monospace; font-size: 13px; text-align: left; white-space: pre-line; }
+  .tip .css:empty { display: none; }
+  @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+
+  .help-output { display: none; width: 100%; max-width: 760px; margin: 24px auto; padding: 20px 24px; border-left: 4px solid #8b5cf6; border-radius: 6px; background: #f4f1ff; color: #252238; font-size: 16px; line-height: 1.5; }
+  .help-output.visible { display: block; }
+  .help-output p { margin: 0; }
+
+  @media (max-width: 700px) {
+    .site { min-width: 0; width: 100%; }
+    .menu, .hero, .games { padding-left: 20px; padding-right: 20px; }
+    .help-output { margin: 16px 12px; padding: 16px; }
+  }
+  @media (max-width: 480px) {
+    .menu { padding-left: 14px; padding-right: 14px; }
+    .menu ul { gap: 10px; }
+    .hero h1 { font-size: 34px; }
+    .games-head { align-items: flex-start; gap: 8px; flex-direction: column; }
+    .cards { grid-template-columns: 1fr; }
+    .card img { height: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="site" id="site"
+           data-tag="body"
+           data-tip="Celé tělo stránky. Nastavuje se mu barva pozadí a základní barva textu."
+           data-css="background-color: #0f0e17;&#10;color: #f2f2f5;"
+           data-req="bg color">
+
+  <div id="homePage">
+
+        <div class="menu" data-tag='&lt;div class="menu"&gt;' data-tip="Horní lišta je &lt;div&gt; s classou. Logo je vlevo a menu vpravo díky display: flex a justify-content: space-between."
+             data-css="display: flex;&#10;justify-content: space-between;&#10;border-bottom: 1px solid #2a2938;"
+             data-req="div align border">
+          <div class="logo" data-tag='&lt;div class="logo"&gt;' data-tip="Logo je jen text v &lt;div&gt; s classou. Druhá půlka je tučně a fialově." data-css="font-size: 14px;&#10;font-weight: 800;&#10;color: #f2f2f5;" data-req="div font color">GAME<b>ZONE</b></div>
+          <ul data-tag="&lt;ul&gt;&lt;li&gt;" data-tip="Menu je obyčejný seznam &lt;ul&gt;. Položky &lt;li&gt; stojí vedle sebe díky display: flex a odrážky jsou vypnuté."
+              data-css="display: flex;&#10;list-style: none;&#10;font-size: 12px;&#10;color: #d8d8e0;"
+              data-req="ul font color">
+            <li data-tag="&lt;li&gt;" data-tip="Jedna položka seznamu (menu).">Domů</li>
+            <li data-tag="&lt;li&gt;" data-tip="Jedna položka seznamu (menu).">Recenze</li>
+            <li data-tag="&lt;li&gt;" data-tip="Jedna položka seznamu (menu).">Novinky</li>
+            <li data-tag="&lt;li&gt;" data-tip="Jedna položka seznamu (menu).">Tipy</li>
+          </ul>
+        </div>
+
+        <div class="hero" data-tag='&lt;div class="hero"&gt;' data-tip="Úvodní část stránky je &lt;div&gt; s classou. Fialová záře vpravo je pozadí vytvořené přechodem."
+             data-css="padding: 52px 40px;&#10;background: radial-gradient(...);"
+             data-req="div bg">
+          <p class="eyebrow" data-tag='&lt;p class="eyebrow"&gt;' data-tip="Malý popisek nad nadpisem. Je to &lt;p&gt; s classou: drobné písmo, rozestupy mezi písmeny a fialová barva."
+             data-css="font-size: 11px;&#10;letter-spacing: .15em;&#10;color: #8b5cf6;"
+             data-req="p font color">BLOG O HRÁCH</p>
+          <h1 data-tag="&lt;h1&gt;" data-tip="Hlavní nadpis stránky. Na stránce je jen jeden. Velikost písma a barva se nastavují v CSS."
+              data-css="font-size: 42px;&#10;color: #ffffff;&#10;text-align: left;"
+              data-req="h1 font color align">Svět her<br>na jednom místě</h1>
+          <p class="lead" data-tag="&lt;p&gt;" data-tip="Odstavec s krátkým popisem webu. Šedá barva a omezená šířka (max-width) udělají užší sloupec textu."
+             data-css="font-size: 15px;&#10;color: #9b9aa8;&#10;max-width: 360px;&#10;text-align: left;"
+             data-req="p font color align">Recenze, novinky, zajímavosti a tipy ze světa počítačových i konzolových her.</p>
+          <a class="tlacitko" href="vice.html" data-tag='&lt;a href="vice.html"&gt;' data-tip="Odkaz s výzvou k akci. V CSS dostal pozadí, padding a zaoblené rohy, a proto vypadá jako tlačítko."
+             data-css="background-color: #8b5cf6;&#10;color: #fff;&#10;padding: 10px 16px;&#10;border-radius: 5px;&#10;text-decoration: none;"
+             data-req="a btn radius bg color">Zjistit více</a>
+        </div>
+
+        <div class="games" data-tag='&lt;div class="games"&gt;' data-tip="Tento div obaluje celou sekci her. Uvnitř najdeš řádek s nadpisem a krátkým popisem a pod ním kontejner cards s jednotlivými herními kartami. Třída games umožňuje nastavit vzhled a odsazení celé sekce pomocí CSS." data-css="padding: 8px 40px 0;" data-req="div">
+          <div class="games-head" data-tag='&lt;div class="games-head"&gt;' data-tip="Řádek s podnadpisem vlevo a poznámkou vpravo. Rozdělení do stran dělá display: flex." data-css="display: flex;&#10;justify-content: space-between;" data-req="div align">
+            <h2 data-tag="&lt;h2&gt;" data-tip="Podnadpis. Je to druhá úroveň nadpisů, proto &lt;h2&gt;. Má menší písmo než &lt;h1&gt;."
+                data-css="font-size: 21px;&#10;color: #ffffff;"
+                data-req="h2 font color">Oblíbené hry</h2>
+            <p class="sub" data-tag='&lt;p class="sub"&gt;' data-tip="Krátká poznámka vpravo. Menší šedé písmo." data-css="font-size: 12px;&#10;color: #9b9aa8;" data-req="p font color">Hry, které podle mě stojí za vyzkoušení</p>
+          </div>
+          <div class="cards" id="cards" data-tag='&lt;div class="cards"&gt;' data-tip="Kontejner karet. Přes CSS grid se karty rozdělí do tří stejně širokých sloupců."
+               data-css="display: grid;&#10;grid-template-columns: repeat(3, 1fr);&#10;gap: 12px;" data-req="div align"></div>
+        </div>
+  </div>
+
+</div>
+
+<section class="help-output" id="helpOutput" aria-live="polite">
+  <p id="helpText"></p>
+</section>
+
+<div class="tip" id="tip" role="tooltip"><code id="tipTag"></code><span id="tipText"></span><div class="css" id="tipCss"></div></div>
+
+<script>
+(function () {
+  // Obrázky jako SVG (data URI), aby fungovaly i bez internetu
+  function svg(a, b, shape) {
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient></defs>' +
+      '<rect width="200" height="100" fill="url(#g)"/>' + shape + '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+  }
+
+  // Karty her (stejná struktura třikrát)
+  // >>> SEM VLOŽ ODKAZY NA SVÉ OBRÁZKY (adresa musí začínat https://) <<<
+  var IMAGE_URLS = [
+    'https://commons.wikimedia.org/wiki/Special:FilePath/Minecraft_-_1.18_mountains.jpg',
+    'https://commons.wikimedia.org/wiki/Special:FilePath/The_Witcher_3_Wild_Hunt_-_Bloody_Baron.jpg',
+    'https://www.igrandtheftauto.com/content/images/4240-gta5-los-santos-afternoon-skyline.jpg'
+  ];
+  var GAMES = [
+    ['Minecraft', 'SANDBOX', 'Nekonečný svět plný stavění, průzkumu a dobrodružství.', '9/10', '#78b6f2', '#6fbf4a', '<rect x="30" y="50" width="40" height="40" fill="#7a5230"/><rect x="100" y="30" width="30" height="30" fill="#5aa13a"/><rect x="140" y="60" width="40" height="30" fill="#7a5230"/>'],
+    ['The Witcher 3', 'RPG', 'Velké dobrodružství Geralta z Rivie, skvělý svět a příběh.', '10/10', '#2c2f33', '#8a8d92', '<circle cx="100" cy="50" r="28" fill="none" stroke="#f2f2f5" stroke-width="5"/><path d="M100 30 L100 70 M80 50 L120 50" stroke="#f2f2f5" stroke-width="5"/>'],
+    ['GTA V', 'AKCE', 'Los Santos, rychlá auta, loupeže a obrovské možnosti.', '9/10', '#e9a35b', '#394a5c', '<circle cx="150" cy="28" r="14" fill="#fff3c4"/><path d="M0 100 L40 55 L80 80 L120 45 L200 100 Z" fill="#1d2a38"/>']
+  ];
+  function el(tag, cls, tagName, tipText, css, req, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    e.dataset.tag = tagName; e.dataset.tip = tipText; e.dataset.css = css; e.dataset.req = req;
+    if (text) e.textContent = text;
+    return e;
+  }
+  var cardsBox = document.getElementById('cards');
+  GAMES.forEach(function (g, idx) {
+    var card = el('div', 'card', '<div class="card">', 'Jedna karta hry je &lt;div&gt; s classou. Má tmavé pozadí, jemný rámeček, zaoblené rohy a stín. Stejná class se použije pro všechny tři karty.'.replace(/&lt;/g,'<').replace(/&gt;/g,'>'),
+      'background-color: #17161f;\nborder: 1px solid #2a2938;\nborder-radius: 6px;\nbox-shadow: 0 4px 14px ...;', 'div bg border radius');
+    var img = el('img', '', '<img>', 'Obrázek hry vložený značkou <img src="..." alt="...">. Velikost se upravuje v CSS pomocí width a height.', 'width: 100%;\nheight: 86px;\nobject-fit: cover;', 'img size');
+    img.alt = g[0];
+    var fallback = svg(g[4], g[5], g[6]);
+    img.onerror = function () { img.onerror = null; img.src = fallback; };
+    img.src = IMAGE_URLS[idx] || fallback;
+    img.dataset.tip = 'Obrázek z webu vložený značkou <img>. Atribut src obsahuje adresu obrázku, alt popisuje obrázek slovy. Velikost se upravuje v CSS pomocí width a height.';
+    img.dataset.tag = '<img src="' + (IMAGE_URLS[idx] || '...') + '" alt="' + g[0] + '">';
+    var body = el('div', 'body', '<div class="body">', 'Vnitřní část karty s texty. Odsazení od okrajů (padding) dělá z karty vzdušnější box.', 'padding: 10px 11px 9px;', 'div');
+    body.appendChild(el('p', 'kategorie', '<p class="kategorie">', 'Žánr hry. Drobné fialové písmo s rozestupy mezi písmeny.', 'font-size: 10px;\ncolor: #8b5cf6;', 'p font color', g[1]));
+    body.appendChild(el('p', 'nazev', '<p class="nazev">', 'Název hry. Je to odstavec s classou, který má větší, tučné a bílé písmo.', 'font-size: 21px;\nfont-weight: 700;\ncolor: #fff;', 'p font color', g[0]));
+    body.appendChild(el('p', 'popis', '<p class="popis">', 'Krátký popis hry šedou barvou a menším písmem.', 'font-size: 14px;\ncolor: #9b9aa8;', 'p font color', g[2]));
+    var hod = el('div', 'hodnoceni', '<div class="hodnoceni">', 'Spodní řádek karty. Nahoře má čáru a skóre je vlevo, hvězdy vpravo díky display: flex.', 'display: flex;\njustify-content: space-between;\nborder-top: 1px solid #2a2938;', 'div align border');
+    hod.appendChild(el('p', 'skore', '<p class="skore">', 'Číselné hodnocení, tučně.', 'font-weight: 700;\nfont-size: 12px;', 'p font', g[3]));
+    hod.appendChild(el('p', 'hvezdy', '<p class="hvezdy">', 'Hvězdy jsou znaky ★ v textu obarvené fialově přes CSS.', 'color: #8b5cf6;', 'p color', '★★★★★'));
+    body.appendChild(hod);
+    card.appendChild(img); card.appendChild(body);
+    cardsBox.appendChild(card);
+  });
+
+  var site = document.getElementById('site');
+  var tip = document.getElementById('tip');
+  var tipTag = document.getElementById('tipTag');
+  var tipText = document.getElementById('tipText');
+  var tipCss = document.getElementById('tipCss');
+  var helpOutput = document.getElementById('helpOutput');
+  var helpText = document.getElementById('helpText');
+  var current = null;
+
+  function showHelp(el) {
+    helpText.textContent = el.dataset.tip || '';
+    helpOutput.classList.add('visible');
+    helpOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function show(el, x, y) {
+    if (current && current !== el) current.classList.remove('hot');
+    current = el;
+    el.classList.add('hot');
+    tipTag.textContent = el.dataset.tag;
+    tipText.textContent = el.dataset.tip;
+    tipCss.textContent = el.dataset.css || '';
+    tip.classList.add('on');
+    place(x, y);
+  }
+  function hide() {
+    if (current) current.classList.remove('hot');
+    current = null;
+    tip.classList.remove('on');
+  }
+  function place(x, y) {
+    var pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var left = x + 18, top = y + 18;
+    if (left + w + pad > vw) left = x - w - 18;
+    if (left < pad) left = pad;
+    if (top + h + pad > vh) top = y - h - 18;
+    if (top < pad) top = pad;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function target(e) {
+    var t = e.target.closest ? e.target.closest('[data-tip]') : null;
+    return t && site.contains(t) ? t : null;
+  }
+
+  site.addEventListener('mousemove', function (e) {
+    var el = target(e);
+    if (!el) { hide(); return; }
+    show(el, e.clientX, e.clientY);
+  });
+  site.addEventListener('mouseleave', hide);
+  site.addEventListener('click', function (e) {
+    var pageLink = e.target.closest ? e.target.closest('.tlacitko') : null;
+    if (pageLink && site.contains(pageLink)) return;
+    e.preventDefault();
+    var el = target(e);
+    if (!el) { hide(); return; }
+    showHelp(el);
+    if (current === el && tip.classList.contains('on')) { hide(); return; }
+    show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('click', function (e) { if (!site.contains(e.target)) hide(); });
+
+})();
+</script>
+</body>
+</html>
